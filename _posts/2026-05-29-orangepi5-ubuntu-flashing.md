@@ -40,29 +40,29 @@ Write stalled
 
 ![RPi Imager 프리징](/images/RPiImagerError.png)
 
-디스크 파티션이 꼬여 강제 포맷을 시도했으나, 이마저도 `Waiting for partitions to activate` 단계에서 무한 프리징에 걸렸다. 결국 디스크 유틸리티 앱을 강제 종료하고 맥북을 재부팅해야 했다.
+디스크 파티션이 꼬여 강제 포맷을 시도했으나, 이마저도 `Waiting for partitions to activate` 단계에서 무한 프리징에 걸렸다. 결국 디스크 유틸리티 앱을 강제 종료하고 맥북을 재부팅해야 했다.\\
 The disk partition was twisted and attempted to format, but even this was infinitely freaked out in the "Waiting for parts to activate" stage. Eventually, the disk utility app had to be forcibly shut down and the MacBook rebooted.
 
 ---
 
 ## 3. 범인 검거: 다이소 리더기의 한계 (Limitations of Daiso Reader)
 
-두 가지 플래싱 툴과 OS 포맷 프로세스가 모두 특정 구간에서 뻗어버리는 현상을 분석한 결과, **물리적 연결 칩셋의 과열**이 원인임을 알아냈다.
+두 가지 플래싱 툴과 OS 포맷 프로세스가 모두 특정 구간에서 뻗어버리는 현상을 분석한 결과, **물리적 연결 칩셋의 과열**이 원인임을 알아냈다.\\
 After analyzing both flushing tools and OS formatting processes stretching over a specific section, I found that **overheating of the physical connection chipset** was the cause.
 
-현재 사용 중인 임시방편용 **다이소 가성비 리더기**가 문제였다.
+현재 사용 중인 임시방편용 **다이소 가성비 리더기**가 문제였다.\\
 The issue was the Daiso Cost-Performance Reader for temporary measures currently in use.
 
 ---
 
 ## 4. 해결 (Solution)
 
-이마트로 달려가 리더기를 새로 공수해왔다.
+이마트로 달려가 리더기를 새로 공수해왔다.\\
 I ran to E-Mart and got a new device.
 
 ---
 
 ## 5. 요약 및 교훈
 
-임베디드 보드 OS 플래싱처럼 대용량 연속 쓰기 작업을 할 때 **싸구려 리더기는 전력 부족과 과열로 무조건 뻗는다.**
+임베디드 보드 OS 플래싱처럼 대용량 연속 쓰기 작업을 할 때 **싸구려 리더기는 전력 부족과 과열로 무조건 뻗는다.**\\
 When performing large continuous write operations like embedded board OS flashing **cheap readers have some problems..**.

@@ -10,12 +10,12 @@ permalink: /projects/raseyes/
 
 ## 문제 정의
 
-지팡이는 바닥 장애물만 탐지할 수 있어, **가슴·머리 높이에 위치한 장애물**(간판, 나뭇가지, 트럭 적재함 등)에 의한 충돌 사고 위험이 상존합니다. 
+지팡이는 바닥 장애물만 탐지할 수 있어, **가슴·머리 높이에 위치한 장애물**(간판, 나뭇가지, 트럭 적재함 등)에 의한 충돌 사고 위험이 상존합니다. \\
 The cane can only detect floor obstacles, and there is always a risk of collision due to obstacles located at chest and head height (signboards, branches, truck loaders, etc.).
 
 ## 솔루션
 
-카메라 비전 AI + ToF 거리 센서를 결합한 체스트 스트랩형 웨어러블 기기로, **두 손을 자유롭게** 유지하면서 전방 상단 장애물을 감지해 이어폰으로 경고음을 전달합니다.
+카메라 비전 AI + ToF 거리 센서를 결합한 체스트 스트랩형 웨어러블 기기로, **두 손을 자유롭게** 유지하면서 전방 상단 장애물을 감지해 이어폰으로 경고음을 전달합니다.\\
 A chest strap-type wearable device that combines camera vision AI + ToF distance sensor to detect front top obstacles while **keeping both hands free** and delivering a warning sound to the earphone.
 
 ## 시스템 구성
