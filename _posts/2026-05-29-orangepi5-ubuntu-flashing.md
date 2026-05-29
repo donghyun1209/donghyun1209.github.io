@@ -1,7 +1,7 @@
 ---
 title: "오렌지파이 5(Orange Pi 5) 우분투 OS 플래싱 삽질"
 date: 2026-05-29 18:00:00 +0900
-categories: [Embedded System, Orange Pi]
+categories: [RasEyes, Embedded System]
 tags: [orangepi, ubuntu, macos, troubleshooting, embedded]
 ---
 
