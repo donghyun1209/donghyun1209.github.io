@@ -26,4 +26,4 @@ An edge AI walking assist device PoC that detects chest and head height obstacle
 | **센서** | VL53L1X ToF + MIPI 카메라 |
 | **목표 지연** | < 500ms, 15 FPS 이상 |
 
-[→ 프로젝트 상세 보기](/projects/raseyes/) &nbsp;|&nbsp; [→ 관련 포스트 보기](/categories/raseyes/)
+[→ 프로젝트 상세 보기](/projects/raseyes/)
