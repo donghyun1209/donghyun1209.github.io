@@ -51,11 +51,6 @@ A chest strap-type wearable device that combines camera vision AI + ToF distance
 
 아래 포스트들에서 개발 과정을 기록하고 있습니다.
 
-{% assign raseyes_posts = site.posts | where_exp: "post", "post.categories contains 'RasEyes'" %}
-{% if raseyes_posts.size > 0 %}
-{% for post in raseyes_posts %}
+{% for post in site.posts %}{% if post.categories contains 'RasEyes' %}
 - [{{ post.title }}]({{ post.url }}) <small>{{ post.date | date: "%Y-%m-%d" }}</small>
-{% endfor %}
-{% else %}
-*아직 작성된 포스트가 없습니다. 곧 업데이트될 예정입니다.*
-{% endif %}
+{% endif %}{% endfor %}
