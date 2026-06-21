@@ -1,5 +1,5 @@
 ---
-title: "RasEyes 개발일지 Orange Pi 5에 올리기
+title: "RasEyes 개발일지 Orange Pi 5에 올리기"
 date: 2026-06-21 09:00:00 +0900
 categories: [RasEyes, Embedded System]
 tags: [orangepi, raseyes, hal, rknn, vl53l1x, systemd, python, embedded]
