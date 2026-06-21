@@ -1,6 +1,6 @@
 ---
 title: "RasEyes 개발일지 Phase 4: 드디어 Orange Pi 5에 올린다"
-date: 2026-06-21 23:00:00 +0900
+date: 2026-06-21 09:00:00 +0900
 categories: [RasEyes, Embedded System]
 tags: [orangepi, raseyes, hal, rknn, vl53l1x, systemd, python, embedded]
 ---
