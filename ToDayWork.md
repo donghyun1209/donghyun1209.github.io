@@ -1,32 +1,59 @@
-## Phase 4-D 진행 현황 (2026-06-25)
+# 2026-06-26 작업 기록
 
-### 완료
-- [x] Orange Pi 5에서 의존성 설치 — sounddevice, gpiod, VL53L1X pip 설치 완료
-- [x] 카메라 / ToF 단품 테스트 — CSICameraHAL PASS, VL53L1XHAL PASS
-- [x] `RASEYES_HW=1 python main.py` 통합 테스트 — ToF 실측으로 MID/HIGH 경보 정상 동작 확인
-- [x] `scripts/test_device.py` 작성 — 단품 테스트 자동화 스크립트
-- [x] `scripts/bench_rknn.py` 작성 — RKNN 추론 속도 측정 스크립트
+## 완료 항목
 
-### 오늘 발견 및 수정한 버그
-- `sensor/vl53l1x_hal.py`:
-  - `VL53L1X.VL53L1X._TOF_LIBRARY` → `VL53L1X._TOF_LIBRARY` (모듈 레벨 변수)
-  - `i2c_port=` → `i2c_bus=` (설치된 라이브러리 파라미터명)
-  - `start_ranging(3)` LONG 모드 → `start_ranging(2)` MEDIUM 모드
-    - LONG 모드는 최소 140ms 타이밍 버짓 필요 / 50ms 설정 시 측정 주기 ~1s → 데이터 만료 경고 flooding
-    - MEDIUM(2)은 최대 3m, 33ms+ 버짓 지원 → 50ms 설정으로 ~10 Hz 안정 동작
-- `main.py`:
-  - rknnlite2/ultralytics/PortAudio 미설치 시 `start()` 크래시 대신 graceful fallback 추가
-  - `_build_vision()`에서 `.rknn` 파일 존재 여부를 factory 단계에서 확인 → 없으면 MockVision fallback
+### Phase 4-D-5 · RKNN 모델 생성 및 전송 
 
-### 추가 완료 (2026-06-25 오후)
-- [x] systemd 서비스 등록 — `enabled`, `active (running)` 확인
-- [x] 부팅 시간 — kernel 3.8s + userspace 7.2s = **11초** (KPI 45초 통과)
-- [x] JackAudioHAL 정상 동작 확인 — sounddevice가 시스템 PortAudio 자동 탐지 (apt 설치 불필요)
-- [x] 센서 데이터 만료 경고 해소 — MEDIUM 모드 적용 후 경고 0건
-- [x] `.github/workflows/build_rknn.yml` 작성 — GitHub Actions(ubuntu x86_64)에서 자동 변환
-  - torch CPU 별도 설치 → PyPI 의존성 충돌 수정 2회
+- `tests/benchmark_rknn.py` 신규 작성 — RknnDetector 전용 NPU 벤치마크 (50회 측정, KPI 자동 판정)
+- GitHub Actions `build_rknn.yml` 워크플로우 3차 디버깅·수정
+  - `quantization_algorithm` → `quantized_algorithm` (rknn-toolkit2 v2.x API 변경)
+  - `onnx>=1.16.1` → `onnx>=1.14.0,<=1.16.0` (`onnx.mapping` 1.17+에서 제거됨)
+  - urllib 308 redirect 미처리 → `wget`으로 교체
+  - INT8 캘리브레이션용 COCO128 데이터셋 자동 다운로드 스텝 추가
+- INT8 양자화 모델(`yolov8n.rknn`, 4.8MB) 빌드 완료 → `scp raseyes:~/RasEyes/` 전송
 
-### 참고 — 하드웨어 / 운영 현황
-- CSI 카메라 FPS: ~10 FPS (KPI 15 FPS 미달, `/dev/video11` V4L2 드라이버 한계)
-- 현재 서비스 상태: MockVision + VL53L1XHAL + JackAudioHAL (ToF 실측 + 이어폰 경보 정상)
-- rknnlite2 설치됨 — `yolov8n.rknn` 파일만 전송하면 즉시 NPU 추론 모드로 전환
+### Phase 4-D-6 · RKNN 추론 속도 측정 
+
+- `vision/rknn_detector.py` 버그 2건 수정
+  - 입력 차원 오류: `(H,W,C)` → `np.expand_dims` → `(1,H,W,C)`
+  - 듀얼 NPU 코어 적용: `init_runtime(core_mask=RKNNLite.NPU_CORE_0_1)`
+- **벤치마크 결과 (서비스 중단, 50회 평균)**
+
+| 지표 | 수치 | KPI |
+|------|------|-----|
+| 평균 지연 | **27.5 ms** | < 60ms  |
+| 최소 지연 | 25.7 ms | - |
+| 최대 지연 | 30.0 ms | - |
+| P95 지연 | 29.9 ms | - |
+| FPS | **36.3** | ≥ 15  |
+
+- FP16 모델(56.7ms, 17.6 FPS) 대비 INT8이 **2.1배 빠름**
+- 주의: systemd `raseyes.service` 실행 중에는 NPU 경합으로 77ms까지 상승 → 실 운영 시 단일 프로세스만 NPU 점유하므로 문제 없음
+
+### 코드 리뷰 및 핫픽스 
+
+- **NPU 리소스 누수 및 예외 처리 보완 (`vision/rknn_detector.py`):**
+  - `start()` 중 예외 발생 시 NPU(`self._rknn`)가 해제되지 않고 잔존하던 리소스 누수 수정.
+  - `stop()`에 개별 `try-except` 예외 처리를 적용하여 NPU 및 카메라 자원의 강제 해제 보장.
+- **pytest 수집 경고 제거 (`scripts/test_device.py`):**
+  - `TestResult` 클래스가 pytest 테스트 대상 클래스로 오인되어 경고를 유발하던 현상 해결 (`__test__ = False` 추가).
+- **벤치마크 예외 안전성 개선 (`tests/benchmark_rknn.py`):**
+  - 측정 중 중단이 발생하더라도 NPU/카메라 리소스가 확실히 정리되도록 `try...finally` 적용.
+- **에이전트 역할 규칙 업데이트 (`.agents/AGENTS.md`):**
+  - 에이전트 역할을 프로젝트 코드를 직접 수정하지 않고 `feedback.txt`를 통해 코드 리뷰만 수행하는 '코드 리뷰어(Code Reviewer)'로 역할 한정 및 지침 재정의.
+
+### 코드 리뷰 피드백 핫픽스
+
+- **pytest 수집 에러 근본 해결 (`pytest.ini` 신규 추가):**
+  - `pytest.ini` 파일 생성 — `testpaths = tests` 설정으로 pytest가 `tests/` 디렉터리만 탐색하도록 제한.
+  - `scripts/test_device.py`가 pytest 수집 단계에서 완전히 배제됨.
+- **ButtonHandler Chip 리소스 누수 수정 (`sensor/button_handler.py`):**
+  - `_poll_loop` 재구조화: `chip = None`, `line = None` 초기화 후 중첩 `try`로 감쌈.
+  - 초기화 중 예외 발생 시 이미 열린 `chip`을 명시적으로 닫고 리턴.
+  - `finally` 블록에서 `line`, `chip` 각각 None 체크 후 안전 해제.
+- **VL53L1X 초기화 실패 시 리소스 누수 수정 (`sensor/vl53l1x_hal.py`):**
+  - `start()` 예외 블록에서 `self._tof`가 이미 open된 경우 `close()` 호출 후 None 처리.
+- **메인 루프 CSV 로깅 예외 안전성 보완 (`main.py`):**
+  - `write_row()` 호출을 `try-except`로 감싸 디스크 에러가 메인 루프를 다운시키지 않도록 처리.
+- **pytest 72개 전체 통과 확인**
+
