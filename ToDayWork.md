@@ -1,59 +1,91 @@
-# 2026-06-26 작업 기록
+# 2026-06-27 작업 일지
 
-## 완료 항목
+---
 
-### Phase 4-D-5 · RKNN 모델 생성 및 전송 
+## Phase 5 · 시스템 최적화 및 안정화
 
-- `tests/benchmark_rknn.py` 신규 작성 — RknnDetector 전용 NPU 벤치마크 (50회 측정, KPI 자동 판정)
-- GitHub Actions `build_rknn.yml` 워크플로우 3차 디버깅·수정
-  - `quantization_algorithm` → `quantized_algorithm` (rknn-toolkit2 v2.x API 변경)
-  - `onnx>=1.16.1` → `onnx>=1.14.0,<=1.16.0` (`onnx.mapping` 1.17+에서 제거됨)
-  - urllib 308 redirect 미처리 → `wget`으로 교체
-  - INT8 캘리브레이션용 COCO128 데이터셋 자동 다운로드 스텝 추가
-- INT8 양자화 모델(`yolov8n.rknn`, 4.8MB) 빌드 완료 → `scp raseyes:~/RasEyes/` 전송
+### 5-1 · E2E Latency 프로파일링
+| 파일 | 변경 내용 |
+|------|-----------|
+| `logs/logger.py` | `FIELDNAMES`에 `latency_ms` 컬럼 추가, `write_row()` 파라미터 추가 |
+| `main.py` | `vision_ts` 기준 EMA 레이턴시 측정, 400ms 초과 시 경고 로그 + CSV 기록 |
 
-### Phase 4-D-6 · RKNN 추론 속도 측정 
+### 5-2 · Thermal Graceful Degradation
+| 파일 | 변경 내용 |
+|------|-----------|
+| `config.py` | `THERMAL_THROTTLE_TEMP_C = 80.0`, `THERMAL_THROTTLE_FPS = 5` 추가 |
+| `main.py` | `_thermal_event` 추가, vision worker 스로틀 슬립 적용, 1초 주기 온도 체크 |
 
-- `vision/rknn_detector.py` 버그 2건 수정
-  - 입력 차원 오류: `(H,W,C)` → `np.expand_dims` → `(1,H,W,C)`
-  - 듀얼 NPU 코어 적용: `init_runtime(core_mask=RKNNLite.NPU_CORE_0_1)`
-- **벤치마크 결과 (서비스 중단, 50회 평균)**
+### 5-3 · 카메라 가림 감지
+| 파일 | 변경 내용 |
+|------|-----------|
+| `config.py` | `CAMERA_OCCLUSION_CHANGE_THRESH = 3.0`, `CAMERA_OCCLUSION_FRAMES = 15`, `CAMERA_OCCLUSION_COOLDOWN_SEC = 5.0` 추가 |
+| `main.py` | 연속 프레임 간 `np.mean(|curr - prev|)` 픽셀 변화량 측정, 15프레임 연속 < 3.0 시 HIGH 경보 + 5초 쿨다운 |
 
-| 지표 | 수치 | KPI |
-|------|------|-----|
-| 평균 지연 | **27.5 ms** | < 60ms  |
-| 최소 지연 | 25.7 ms | - |
-| 최대 지연 | 30.0 ms | - |
-| P95 지연 | 29.9 ms | - |
-| FPS | **36.3** | ≥ 15  |
+### 5-4 · 배터리 잔량 경고
+| 파일 | 변경 내용 |
+|------|-----------|
+| `config.py` | `BATTERY_LOW_THRESHOLD_PCT = 20`, `BATTERY_CHECK_INTERVAL_SEC = 30.0`, `BATTERY_SYSFS_PATH` 추가 |
+| `main.py` | `_read_battery_percent()` 신규 추가, 30초 주기 확인, 20% 미만 시 MID 경보 |
 
-- FP16 모델(56.7ms, 17.6 FPS) 대비 INT8이 **2.1배 빠름**
-- 주의: systemd `raseyes.service` 실행 중에는 NPU 경합으로 77ms까지 상승 → 실 운영 시 단일 프로세스만 NPU 점유하므로 문제 없음
+### 5-5 · 액티브 쿨러 PWM 제어
+| 파일 | 변경 내용 |
+|------|-----------|
+| `scripts/pwm_fan_control.py` | 신규 생성 — `/sys/class/pwm/pwmchip0/pwm0/` sysfs 제어, 온도→듀티 선형 보간 (`<50°C→20%`, `50~70°C→20~80%`, `≥80°C→100%`), 5초 주기, SIGTERM/SIGINT 종료 |
 
-### 코드 리뷰 및 핫픽스 
+> **비고**: 5V 상시 구동 팬을 GPIO 4/6번 핀에 직결로 하드웨어 해결. `pwm_fan_control.py`는 코드베이스에 보존하되 실제 미사용.
 
-- **NPU 리소스 누수 및 예외 처리 보완 (`vision/rknn_detector.py`):**
-  - `start()` 중 예외 발생 시 NPU(`self._rknn`)가 해제되지 않고 잔존하던 리소스 누수 수정.
-  - `stop()`에 개별 `try-except` 예외 처리를 적용하여 NPU 및 카메라 자원의 강제 해제 보장.
-- **pytest 수집 경고 제거 (`scripts/test_device.py`):**
-  - `TestResult` 클래스가 pytest 테스트 대상 클래스로 오인되어 경고를 유발하던 현상 해결 (`__test__ = False` 추가).
-- **벤치마크 예외 안전성 개선 (`tests/benchmark_rknn.py`):**
-  - 측정 중 중단이 발생하더라도 NPU/카메라 리소스가 확실히 정리되도록 `try...finally` 적용.
-- **에이전트 역할 규칙 업데이트 (`.agents/AGENTS.md`):**
-  - 에이전트 역할을 프로젝트 코드를 직접 수정하지 않고 `feedback.txt`를 통해 코드 리뷰만 수행하는 '코드 리뷰어(Code Reviewer)'로 역할 한정 및 지침 재정의.
+### 테스트
+- `tests/test_phase5.py` 신규 생성 (20개 테스트)
+- **최종 결과: 92 tests passing** (기존 72 + 신규 20)
 
-### 코드 리뷰 피드백 핫픽스
+---
 
-- **pytest 수집 에러 근본 해결 (`pytest.ini` 신규 추가):**
-  - `pytest.ini` 파일 생성 — `testpaths = tests` 설정으로 pytest가 `tests/` 디렉터리만 탐색하도록 제한.
-  - `scripts/test_device.py`가 pytest 수집 단계에서 완전히 배제됨.
-- **ButtonHandler Chip 리소스 누수 수정 (`sensor/button_handler.py`):**
-  - `_poll_loop` 재구조화: `chip = None`, `line = None` 초기화 후 중첩 `try`로 감쌈.
-  - 초기화 중 예외 발생 시 이미 열린 `chip`을 명시적으로 닫고 리턴.
-  - `finally` 블록에서 `line`, `chip` 각각 None 체크 후 안전 해제.
-- **VL53L1X 초기화 실패 시 리소스 누수 수정 (`sensor/vl53l1x_hal.py`):**
-  - `start()` 예외 블록에서 `self._tof`가 이미 open된 경우 `close()` 호출 후 None 처리.
-- **메인 루프 CSV 로깅 예외 안전성 보완 (`main.py`):**
-  - `write_row()` 호출을 `try-except`로 감싸 디스크 에러가 메인 루프를 다운시키지 않도록 처리.
-- **pytest 72개 전체 통과 확인**
+## Phase 5 코드 리뷰 피드백 반영
 
+> 출처: `feedback.txt` — 안정성·실시간성·예외처리 개선 8개 항목
+
+### #1 · E2E 레이턴시 중복 누적 버그 (`main.py`)
+- **문제**: `current_vision_ts`가 프레임 미수신 루프에서도 초기화되지 않아 EMA에 중복 누적
+- **수정**: 레이턴시 계산 직후 `current_vision_ts = None` 리셋 → 신규 프레임 수신 시에만 갱신
+
+### #2 · RKNN 클래스 라벨 불일치 (`vision/rknn_detector.py`)
+- **문제**: `label=str(class_ids[i])` — 숫자 문자열(`"0"`, `"1"`) 반환, CPU 모드와 불일치
+- **수정**: COCO 80개 클래스 테이블 `_COCO_CLASSES` 추가 → `label=_COCO_CLASSES[int(class_ids[i])]`
+
+### #3 · 발열 스로틀링 히스테리시스 (`config.py`, `main.py`)
+- **문제**: 80°C 경계에서 스로틀 on/off가 1초마다 반복되는 채터링 현상
+- **수정**: `THERMAL_RECOVERY_TEMP_C = 75.0` 추가 — 진입 80°C 초과 / 복구 75°C 이하 (5°C 마진)
+
+### #4 · ButtonHandler 연동 (`main.py`)
+- **문제**: `sensor/button_handler.py` 구현체가 `main.py`에 연결되지 않아 물리 버튼 미작동
+- **수정**: `_button_handler` / `_mute_active` 필드 추가, `_toggle_mute()` 콜백, `start()` / `stop()` 연동 (`use_hw` 모드에서만 활성화, gpiod 미설치 시 graceful 경고)
+
+### #5 · PWM 초기화 순서 (`scripts/pwm_fan_control.py`)
+- **문제**: 기존 `duty_cycle > period` 상태에서 `period` 쓰기 시 커널 `EINVAL` 오류
+- **수정**: `period` 쓰기 전 `duty_cycle = 0` 먼저 기록
+
+### #6 · SIGTERM Graceful Shutdown (`main.py`)
+- **문제**: `KeyboardInterrupt`만 캐치 → systemd `SIGTERM` 수신 시 `finally` 블록 미실행, 리소스 미반환
+- **수정**: `signal.SIGTERM` 핸들러 등록 (`_stop_event.set()`), `while True:` → `while not self._stop_event.is_set():`
+
+### #7 · 오디오 출력 경합 방지 (`audio/beep_controller.py`, `main.py`)
+- **문제**: 장애물 경보와 배터리 경고가 동시에 `play_alert()` 호출 시 ALSA 충돌 가능
+- **수정**: `BeepController`에 `request_system_alert()` / `pop_system_alert()` 추가, 배터리 경고를 BeepController로 라우팅해 단일 경로로 직렬화. 음소거 플래그(`_mute_active`) 체크 추가
+
+### #8 · NMSBoxes 반환 타입 안전성 (`vision/rknn_detector.py`)
+- **문제**: OpenCV 버전에 따라 `NMSBoxes` 반환값이 list/tuple일 경우 `flatten()` AttributeError
+- **수정**: `indices.flatten()` → `np.array(indices).flatten()`
+
+### 테스트 결과
+- **92 tests passing** (PC + Orange Pi 모두 통과, 회귀 없음)
+
+---
+
+### 오프라인 테스트 시 확인 필요 항목
+1. **ButtonHandler** — gpiod 설치 여부, 버튼 누름 → 음소거 토글 로그 확인
+2. **RKNN 라벨** — 탐지 결과가 `"person"` 등 문자열인지 확인 (숫자면 버그)
+3. **발열 히스테리시스** — 80→75°C 구간에서 채터링 없는지 확인
+4. **E2E latency CSV** — `latency_ms` 컬럼이 단조증가하지 않는지 확인
+5. **SIGTERM cleanup** — `sudo systemctl stop raseyes` 후 `journalctl`에서 `"RasEyes 종료"` 확인
+6. **오디오 경합** — 배터리 경고 시 경보음이 끊기지 않는지 귀로 확인
