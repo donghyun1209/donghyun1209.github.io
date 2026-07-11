@@ -1,41 +1,38 @@
 ---
-title: "RasEyes 개발일지 Orange Pi 5에 올리기"
+title: "RasEyes 개발일지: Orange Pi 5에 올리기"
 date: 2026-06-21 09:00:00 +0900
 categories: [RasEyes, Embedded System]
 tags: [orangepi, raseyes, hal, rknn, vl53l1x, systemd, python, embedded]
 ---
 
-지금까지 맥북에서 Mock 환경으로만 돌리던 RasEyes를 실제 Orange Pi 5 하드웨어에서 구동하기 위한 HAL 구현체들을 전부 작성했다.\\
-I finished writing all HAL implementations for running RasEyes on the actual Orange Pi 5 hardware, which had only been running in a Mock environment on MacBook until now.
+지금까지 RasEyes는 맥북 위에서만 돌아가는 물건이었다. 이제 진짜 Orange Pi 5 보드에 진짜 카메라와 진짜 센서를 붙여볼 차례가 됐다.\\
+Until now, RasEyes had only ever run on my MacBook. It was finally time to hook it up to a real Orange Pi 5 board with real hardware.
 
-코드 구조 자체는 건드리지 않고, 하드웨어별 구현체만 갈아끼우는 방식이다.\\
-The code structure itself was not touched — only the hardware-specific implementations were swapped in.
-
----
-
-## 1. 카메라 — CSI 카메라 HAL (Camera — CSI Camera HAL)
-
-Orange Pi 5에 붙어 있는 OV13855 MIPI CSI 카메라를 OpenCV로 잡는 클래스를 만들었다.\\
-A class was created to capture the OV13855 MIPI CSI camera attached to the Orange Pi 5 using OpenCV.
-
-기존 `OpenCVCamera`랑 거의 똑같은데, 카메라 인덱스(0, 1...)가 아니라 장치 경로(`/dev/video11`)를 받는다는 점이 다르다.\\
-It is almost identical to the existing `OpenCVCamera`, but the difference is that it takes a device path (`/dev/video11`) instead of a camera index (0, 1...).
-
-버퍼 크기를 1로 설정해서 프레임 지연이 쌓이지 않게 했다. 해상도가 안 맞을 경우엔 소프트웨어 리사이즈로 폴백한다.\\
-The buffer size was set to 1 to prevent frame latency from accumulating. If the resolution doesn't match, it falls back to software resize.
+다행히 코드 구조는 손대지 않고 하드웨어별 구현체(HAL)만 갈아끼우면 되도록 짜뒀다. 문제는 그 "갈아끼우는" 과정에서 하나씩 사고가 터졌다는 거다.\\
+Luckily I'd built the code so only the hardware-specific implementations (HAL) needed swapping — the structure itself wouldn't change. The problem was that things broke one by one during that swap.
 
 ---
 
-## 2. ToF 센서 — VL53L1X HAL (ToF Sensor — VL53L1X HAL)
+## 1. 카메라는 그럭저럭 순조로웠다 (The camera went smoothly enough)
 
-VL53L1X 드라이버를 64비트 ARM(aarch64)에서 그냥 쓰면 세그폴트가 난다.\\
-Using the VL53L1X driver as-is on 64-bit ARM (aarch64) causes a segfault.
+Orange Pi 5에 붙어 있는 OV13855 MIPI CSI 카메라를 OpenCV로 잡는 것부터 시작했다. 기존에 쓰던 `OpenCVCamera` 클래스를 거의 그대로 재활용했고, 카메라 인덱스(0, 1...) 대신 장치 경로(`/dev/video11`)를 받도록 한 줄만 바꿨다.\\
+I started by capturing the OV13855 MIPI CSI camera on the Orange Pi 5 with OpenCV. I reused the existing `OpenCVCamera` class almost as-is, just changing it to take a device path (`/dev/video11`) instead of a camera index (0, 1...).
 
-ctypes 함수 포인터 크기가 틀려서 발생하는 버그로, 공식 이슈에도 올라온 known 버그다.\\
-It's a known bug caused by incorrect ctypes function pointer sizes, already reported in the official issue tracker.
+버퍼 크기를 1로 안 잡으면 프레임이 계속 밀려서 화면이 과거를 보여주는 현상이 생긴다는 걸 다른 프로젝트에서 겪어본 적이 있어서, 이번엔 미리 버퍼 크기를 1로 박아뒀다. 해상도가 안 맞을 때는 소프트웨어 리사이즈로 폴백하게만 해두고 넘어갔다.\\
+I already knew from a past project that skipping a buffer size of 1 makes frames pile up and the feed lag behind reality, so I set the buffer size to 1 from the start this time. I just added a software-resize fallback for resolution mismatches and moved on.
 
-라이브러리 내부 C 함수 시그니처를 직접 재정의해서 패치했다.\\
-The internal C function signatures in the library were manually redefined as a patch.
+---
+
+## 2. ToF 센서가 다짜고짜 프로세스를 죽였다 (The ToF sensor just killed the process)
+
+문제는 VL53L1X 거리 센서였다. 라이브러리를 붙이고 `start_ranging()`을 호출한 순간, 에러 메시지 한 줄 없이 파이썬 프로세스가 그냥 죽어버렸다.\\
+The real problem was the VL53L1X distance sensor. The moment I wired up the library and called `start_ranging()`, the Python process just died — no error message, nothing.
+
+배선을 다시 확인해봐도 멀쩡했고, I2C 주소도 정상으로 잡혔다. 검색을 좀 해보니 64비트 ARM(aarch64)에서 이 드라이버를 그대로 쓰면 세그폴트가 난다는 게 공식 이슈 트래커에 이미 올라와 있는 known 버그였다.\\
+I double-checked the wiring — fine. The I2C address was picked up correctly too. A bit of searching turned up a known bug already reported on the official issue tracker: using this driver as-is on 64-bit ARM (aarch64) causes a segfault.
+
+원인은 ctypes 함수 포인터 크기였다. 라이브러리 내부 C 함수 시그니처를 직접 재정의해서 패치하는 수밖에 없었다.\\
+The cause was a ctypes function pointer size mismatch. The only fix was to manually redefine the internal C function signatures myself.
 
 ```python
 lib = VL53L1X._TOF_LIBRARY
@@ -44,68 +41,35 @@ lib.getDistance.restype = c_uint16
 # ... 나머지 argtypes도 명시
 ```
 
-이거 안 하면 `start_ranging()` 호출 순간 프로세스가 죽는다.\\
-Without this, the process dies the moment `start_ranging()` is called.
-
-거리 읽기는 0mm(측정 범위 초과)이면 `TOF_OUT_OF_RANGE_CM`을 반환하고, 그 외엔 mm을 10으로 나눠서 cm로 돌려준다.\\
-For distance reading, if the value is 0mm (out of measurement range), `TOF_OUT_OF_RANGE_CM` is returned; otherwise, mm is divided by 10 and returned as cm.
+이 몇 줄을 안 넣으면 `start_ranging()`을 부르는 순간 그대로 프로세스가 죽는다. 패치하고 나니 거리 읽기는 멀쩡하게 동작했다. 0mm(측정 범위 초과)면 `TOF_OUT_OF_RANGE_CM`을 반환하고, 그 외엔 mm을 10으로 나눠 cm로 돌려주게 정리했다.\\
+Without these few lines, the process dies the instant `start_ranging()` is called. Once patched, distance reading worked fine — 0mm (out of range) returns `TOF_OUT_OF_RANGE_CM`, otherwise mm is divided by 10 and returned as cm.
 
 ---
 
-## 3. 오디오 — 이어폰 잭 HAL (Audio — Earphone Jack HAL)
+## 3. 오디오랑 RKNN 파이프라인은 미리 만들어만 뒀다 (Audio and the RKNN pipeline — built but untested)
 
-`sounddevice` + `numpy`로 사인파를 만들어서 3.5mm 잭으로 출력한다.\\
-A sine wave is generated with `sounddevice` + `numpy` and output through the 3.5mm jack.
+이어폰 잭 출력은 `sounddevice`와 `numpy`로 사인파를 만들어서 내보내는 방식으로 짰다. HIGH(2000Hz)와 MID(1000Hz) 두 톤을 쓰고, 시작·끝 10ms에 페이드인·아웃을 걸어서 "딱" 하는 클릭 노이즈를 없앴다. 비동기로 재생되기 때문에 비프음이 나오는 동안에도 메인 루프는 멈추지 않는다.\\
+For earphone output, I generate a sine wave with `sounddevice` + `numpy`. I use two tones — HIGH (2000Hz) and MID (1000Hz) — with a 10ms fade-in/out at the start and end to kill the "click" noise. Playback is asynchronous, so the main loop never stalls while a beep plays.
 
-HIGH(2000Hz), MID(1000Hz) 두 가지 주파수를 쓰고, 시작/끝 10ms에 페이드인·페이드아웃을 걸어서 "딱" 하는 클릭 노이즈를 없앴다.\\
-Two frequencies are used — HIGH (2000Hz) and MID (1000Hz) — with a 10ms fade-in/fade-out at the start and end to eliminate the "click" noise.
-
-비동기(`blocking=False`)라서 비프음이 나오는 동안에도 메인 루프가 멈추지 않는다.\\
-Since it's asynchronous (`blocking=False`), the main loop doesn't stall while a beep is playing.
+NPU 추론 쪽은 PC에서 YOLOv8n을 INT8로 변환해서(`scripts/export_rknn.py`) 보드로 보내면 `RknnDetector`가 rknnlite2로 로드해 추론하는 구조로 짜뒀다. rknnlite2가 없거나 모델 파일이 없으면 자동으로 PyTorch CPU 추론으로 떨어지게 factory 함수에 폴백을 넣어뒀다. 아직 실제 보드에서 돌려본 적은 없다.\\
+For NPU inference, I convert YOLOv8n to INT8 on my PC (`scripts/export_rknn.py`), send it to the board, and `RknnDetector` loads and runs it via rknnlite2. If rknnlite2 or the model file is missing, the factory function falls back to PyTorch CPU inference automatically. I haven't actually run this on the board yet.
 
 ---
 
-## 4. RKNN NPU 파이프라인 (RKNN NPU Pipeline)
+## 4. 전원만 꽂으면 알아서 켜지게 (Power on, and it just starts)
 
-Orange Pi 5에는 NPU가 달려 있다. PC에서 YOLOv8n 모델을 INT8로 변환해서(`scripts/export_rknn.py`) Orange Pi 5로 보내면, `RknnDetector`가 rknnlite2로 로드해서 추론한다.\\
-The Orange Pi 5 has an NPU. The YOLOv8n model is converted to INT8 on a PC (`scripts/export_rknn.py`) and sent to the Orange Pi 5, where `RknnDetector` loads and runs inference via rknnlite2.
+`systemd` 서비스로 등록해서 전원만 꽂으면 자동으로 실행되게 만들었다. `RASEYES_HW=1` 환경변수를 넣어두면 `main.py`가 하드웨어 HAL을 골라 쓰는 식이다.\\
+I registered it as a `systemd` service so it starts automatically on power-on. Setting the `RASEYES_HW=1` environment variable makes `main.py` pick the hardware HAL.
 
-추론 흐름은 아래와 같다.\\
-The inference flow is as follows.
-
-> 640×640 리사이즈 → NPU 추론 → NMS 후처리 → 원본 해상도 bbox 역변환
->
-> 640×640 resize → NPU inference → NMS post-processing → bbox inverse transform to original resolution
-
-rknnlite2가 설치 안 된 환경이거나 모델 파일이 없을 때엔 자동으로 PyTorch CPU 추론으로 폴백되도록 factory 함수에서 처리해뒀다.\\
-If rknnlite2 is not installed or the model file is missing, the factory function automatically falls back to PyTorch CPU inference.
+부팅이 끝나면 MID → MID → HIGH 멜로디가 울리게 해뒀다. 화면 없이도 "준비됐다"는 걸 알 수 있어야 하니까.\\
+On boot completion, it plays a MID → MID → HIGH melody — so it's clear the device is ready even without a screen.
 
 ---
 
-## 5. 시스템 서비스 (System Service)
+## 5. 요약 및 교훈 (Summary & lessons)
 
-전원만 꽂으면 자동으로 실행되도록 systemd 서비스를 만들었다.\\
-A systemd service was created so it runs automatically on power-on.
+오늘 가장 크게 배운 건, "공식 라이브러리도 내가 쓰는 플랫폼에서는 그냥 안 돌아갈 수 있다"는 거다. VL53L1X 세그폴트는 배선도 아니고 내 코드도 아니고 라이브러리의 aarch64 미지원 버그였다. 에러 메시지 없이 죽는 증상을 만나면 일단 아키텍처부터 의심해봐야 한다는 걸 배웠다.\\
+The biggest lesson today: even an official library can just not work on the platform you're actually using. The VL53L1X segfault wasn't the wiring or my code — it was the library's own aarch64 support bug. When something dies with no error message at all, architecture mismatch should be one of the first things to suspect.
 
-```ini
-Environment="RASEYES_HW=1"
-Restart=on-failure
-RestartSec=5
-```
-
-`RASEYES_HW=1`을 환경변수로 넣어두면 `main.py`가 하드웨어 HAL을 선택한다.\\
-With `RASEYES_HW=1` set as an environment variable, `main.py` selects the hardware HAL.
-
-부팅 완료 시엔 MID → MID → HIGH 멜로디가 울려서 "준비됐다"는 신호를 준다. 시각장애인이 화면 없이 상태를 인지할 수 있게 하기 위해서다.\\
-On boot completion, a MID → MID → HIGH melody plays as a "ready" signal — so visually impaired users can recognize the device state without a screen.
-
----
-
-## 다음 할 일 (Next Steps)
-
-- [ ] Orange Pi 5에서 의존성 설치 (`pip install -r requirements-rpi.txt`)
-- [ ] 카메라 / ToF / 오디오 단품 테스트
-- [ ] `RASEYES_HW=1 python main.py` 통합 테스트 (FPS≥15, 비프음 확인)
-- [ ] `scripts/export_rknn.py`로 `yolov8n.rknn` 생성 후 scp로 전송
-- [ ] RKNN 추론 속도 측정 (목표 < 60ms)
-- [ ] systemd 서비스 등록 및 부팅 자동 시작 검증
+이제 실제 보드에 의존성을 깔고, 카메라·ToF·오디오를 하나씩 단품 테스트해볼 차례다.\\
+Next up: installing the dependencies on the actual board and testing the camera, ToF, and audio one by one.

@@ -5,66 +5,58 @@ categories: [RasEyes, Embedded System]
 tags: [orangepi5, vl53l1x, rknn, systemd, i2c, portaudio, sounddevice, tof, github-actions]
 ---
 
-Orange Pi 5 환경에서 RasEyes 시스템의 통합 테스트와 센서 최적화를 성공적으로 완료했습니다.\\
-I have successfully completed the integration testing and sensor optimization of the RasEyes system on the Orange Pi 5.
+의존성 설치를 마치고 드디어 보드에서 통합 테스트를 돌려봤다.\\
+With the dependencies installed, I finally ran the integration test on the board.
 
 ---
 
-### 의존성 설치 및 테스트 자동화\\Dependency Setup and Test Automation
+## 1. 단품 테스트부터 자동화 (Automating the unit tests first)
 
-하드웨어 제어와 음향 출력을 위한 라이브러리(`sounddevice`, `gpiod`, `VL53L1X`) 설치를 완료했습니다.\\
-I completed the installation of libraries (`sounddevice`, `gpiod`, `VL53L1X`) for hardware control and audio output.
-
-단품 하드웨어 검증을 자동화하기 위해 `scripts/test_device.py`를 작성하여 CSICameraHAL과 VL53L1XHAL의 정상 동작을 빠르게 검증할 수 있도록 했습니다.\\
-To automate hardware unit verification, I created `scripts/test_device.py` to quickly validate the operations of CSICameraHAL and VL53L1XHAL.
-
-또한, 향후 NPU 모델 성능 측정을 위해 RKNN 추론 속도를 벤치마크할 수 있는 `scripts/bench_rknn.py` 스크립트도 함께 추가했습니다.\\
-Additionally, I added the `scripts/bench_rknn.py` script to benchmark RKNN inference speeds for future NPU model performance measurements.
+`sounddevice`, `gpiod`, `VL53L1X` 라이브러리부터 깔았다. 매번 손으로 카메라 켜보고 센서 값 찍어보는 게 귀찮아서, `scripts/test_device.py`를 만들어 CSICameraHAL과 VL53L1XHAL이 제대로 동작하는지 한 번에 확인할 수 있게 했다. 나중에 NPU 성능도 재야 할 것 같아서 `scripts/bench_rknn.py`도 미리 만들어뒀다.\\
+I installed the `sounddevice`, `gpiod`, and `VL53L1X` libraries first. Manually turning on the camera and checking sensor readings every time was tedious, so I wrote `scripts/test_device.py` to verify CSICameraHAL and VL53L1XHAL in one shot. Since I'd need to measure NPU performance eventually anyway, I also wrote `scripts/bench_rknn.py` ahead of time.
 
 ---
 
-### ToF 센서 버그 수정 및 최적화\\ToF Sensor Bug Fixes and Optimization
+## 2. ToF 센서가 자꾸 헐떡거렸다 (The ToF sensor kept gasping for air)
 
-`sensor/vl53l1x_hal.py` 모듈에서 라이브러리 참조 오류와 파라미터명 오류(`i2c_port`에서 `i2c_bus`로 수정)를 해결했습니다.\\
-I resolved library reference and parameter name errors (changing `i2c_port` to `i2c_bus`) in the `sensor/vl53l1x_hal.py` module.
+`vl53l1x_hal.py`에서 파라미터명 오타(`i2c_port` → `i2c_bus`)부터 잡았다. 여기까진 쉬웠다.\\
+First I fixed a parameter name typo in `vl53l1x_hal.py` (`i2c_port` → `i2c_bus`). That part was easy.
 
-특히 ToF 센서의 모드를 LONG(3)에서 MEDIUM(2)으로 변경하여 성능과 안정성을 모두 확보했습니다.\\
-Particularly, I changed the ToF sensor mode from LONG (3) to MEDIUM (2) to secure both performance and stability.
+진짜 문제는 그다음이었다. 거리값이 갱신되는 속도가 점점 느려지더니 거의 1초에 한 번꼴로만 값이 바뀌었고, 로그에는 만료 경고가 쉴 새 없이 쌓였다. 처음엔 I2C 배선이나 전원 문제인 줄 알았다.\\
+The real problem came right after. The distance reading's update rate kept slowing down until it was refreshing barely once a second, and the log was flooded with expiration warnings. At first I thought it was an I2C wiring or power issue.
 
-기존 LONG 모드는 최소 140ms의 타이밍 버짓이 필요한 상황에서 50ms로 무리하게 설정되어 데이터 갱신 속도가 약 1초까지 지연되고 만료 경고가 다량 발생했습니다.\\
-The previous LONG mode, which required a minimum timing budget of 140ms, was aggressively set to 50ms, causing data update rates to delay up to ~1s and flooding expiration warnings.
+원인은 타이밍 버짓이었다. 센서를 LONG 모드(최대 거리 측정용, 최소 140ms 타이밍 버짓 필요)로 설정해뒀는데, 실제 폴링 주기는 50ms로 짜여 있었다. 센서가 요구하는 시간보다 훨씬 짧은 주기로 계속 값을 요청하니 매번 "아직 준비 안 됐다"는 경고만 쌓이는 거였다.\\
+The culprit was the timing budget. I had the sensor set to LONG mode (for maximum range, which needs at least a 140ms timing budget), but the actual polling loop ran every 50ms — far shorter than what the sensor needed. It kept getting asked for a value before it was ready, so warnings just piled up every cycle.
 
-MEDIUM 모드는 최대 3m 거리 측정과 33ms+ 버짓을 지원하여, 50ms 설정 하에서 약 10Hz의 안정적인 샘플링 속도를 보여주며 경고를 완전히 해결했습니다.\\
-The MEDIUM mode supports up to a 3m range and a 33ms+ budget, which achieved a stable sampling rate of around 10Hz under the 50ms configuration, completely resolving the warnings.
-
----
-
-### 예외 처리 강화 및 부팅 성능 향상\\Robust Exception Handling and Boot Performance
-
-`main.py`에서는 `rknnlite2`나 `ultralytics`, `PortAudio` 등 특정 라이브러리가 미설치된 환경에서도 프로그램이 크래시되지 않고 정상적으로 대체 동작을 수행하도록 개선했습니다.\\
-In `main.py`, I improved the program to execute a graceful fallback instead of crashing when specific libraries such as `rknnlite2`, `ultralytics`, or `PortAudio` are not installed.
-
-특히 `_build_vision()` 함수 내부에서 NPU 변환 모델 파일(`.rknn`)의 존재 여부를 팩토리 단계에서 선제적으로 검사하여, 없을 경우 `MockVision`으로 안전하게 전환되도록 구현했습니다.\\
-Specifically, I implemented a pre-check for the existence of the NPU conversion model file (`.rknn`) within the `_build_vision()` function at the factory stage, safely switching to `MockVision` if missing.
-
-부팅 시 시스템이 자동 시작되도록 `systemd` 서비스 등록을 마쳤으며, 부팅 속도는 커널 3.8초, 유저스페이스 7.2초를 기록하여 총 11초 만에 완료되었습니다.\\
-I completed the `systemd` service registration for auto-start on boot, achieving a total boot time of 11 seconds (kernel 3.8s + userspace 7.2s).
-
-이는 하드웨어 통합 검증 KPI 기준인 45초를 큰 폭으로 단축한 수치입니다.\\
-This significantly outperforms the hardware integration verification KPI target of 45 seconds.
-
-음향 라이브러리인 `sounddevice`가 시스템에 설치된 `PortAudio`를 올바르게 감지하여 별도의 패키지 수동 설치 없이 `JackAudioHAL`이 매끄럽게 구동되는 점도 확인했습니다.\\
-I also verified that the audio library `sounddevice` automatically detects the system's `PortAudio`, allowing `JackAudioHAL` to run smoothly without manual package installations.
+모드를 MEDIUM(최대 3m, 33ms+ 버짓)으로 낮췄다. 50ms 주기에서도 여유가 생겨서 안정적으로 약 10Hz 샘플링이 나왔고, 경고도 싹 사라졌다. 어차피 RasEyes가 감지해야 하는 장애물 거리는 3m면 충분했다.\\
+I dropped the mode down to MEDIUM (max 3m, 33ms+ budget). That gave enough headroom at the 50ms cycle to get a stable ~10Hz sampling rate, and the warnings disappeared completely. 3m of range was plenty for the obstacles RasEyes actually needs to detect anyway.
 
 ---
 
-### CI/CD 파이프라인 및 현재 운영 현황\\CI/CD Pipeline and Current Operational Status
+## 3. 없는 라이브러리 때문에 죽는 걸 막았다 (Making sure missing libraries don't crash it)
 
-GitHub Actions(ubuntu x86_64) 환경에서 PyTorch 모델을 RKNN 파일로 자동 변환하는 `.github/workflows/build_rknn.yml` 워크플로우를 구축했습니다.\\
-I established a `.github/workflows/build_rknn.yml` workflow to automatically convert PyTorch models to RKNN files in a GitHub Actions (ubuntu x86_64) environment.
+`rknnlite2`나 `ultralytics`, `PortAudio`가 설치 안 된 환경에서 `main.py`가 그냥 죽어버리는 것도 손봤다. 특히 `_build_vision()`에서는 `.rknn` 모델 파일이 있는지부터 미리 검사해서, 없으면 `MockVision`으로 조용히 넘어가게 만들었다.\\
+I also fixed `main.py` crashing outright in environments where `rknnlite2`, `ultralytics`, or `PortAudio` weren't installed. In `_build_vision()` especially, I now check upfront whether the `.rknn` model file exists, and if not, it quietly falls back to `MockVision`.
 
-현재 Orange Pi 5 장비는 `MockVision` + `VL53L1XHAL` + `JackAudioHAL` 조합을 바탕으로 실측 거리 기반 경보 기능을 정상적으로 제공하고 있습니다.\\
-Currently, the Orange Pi 5 device is successfully providing real-time distance-based alerts using the combination of `MockVision` + `VL53L1XHAL` + `JackAudioHAL`.
+`systemd` 등록도 마쳤다. 부팅 시간을 재보니 커널 3.8초, 유저스페이스 7.2초로 총 11초. 목표였던 45초에 비하면 훨씬 여유 있는 수치라 만족스러웠다.\\
+I finished the `systemd` registration too. Measured boot time came out to 11 seconds total (kernel 3.8s + userspace 7.2s) — comfortably under the 45-second target, which was satisfying.
 
-CSI 카메라는 `/dev/video11` V4L2 드라이버 한계로 인해 약 10 FPS를 기록하여 목표 수치인 15 FPS에 다소 못 미치는 성능을 보이지만, 향후 NPU 추론을 위해 `yolov8n.rknn` 파일만 배포하면 즉시 고속 NPU 추론 모드로 전환될 준비가 끝난 상태입니다.\\
-Although the CSI camera records around 10 FPS due to `/dev/video11` V4L2 driver limitations—slightly below the 15 FPS target—it is fully prepared to transition immediately to high-speed NPU inference once the `yolov8n.rknn` file is deployed.
+`sounddevice`가 시스템에 깔린 `PortAudio`를 알아서 잘 찾아줘서, `JackAudioHAL`은 별다른 수동 설치 없이 바로 돌아갔다.\\
+`sounddevice` automatically found the system's installed `PortAudio`, so `JackAudioHAL` worked right away with no manual setup needed.
+
+---
+
+## 4. GitHub Actions로 RKNN 빌드 자동화 (Automating the RKNN build with GitHub Actions)
+
+PyTorch 모델을 RKNN 파일로 변환하는 작업을 매번 로컬에서 하기 귀찮아서, GitHub Actions에 `build_rknn.yml` 워크플로우를 만들어뒀다.\\
+Doing the PyTorch-to-RKNN model conversion locally every time was a pain, so I set up a `build_rknn.yml` GitHub Actions workflow. 
+
+---
+
+## 5. 요약 및 교훈 (Summary & lessons)
+
+지금 Orange Pi 5는 `MockVision` + `VL53L1XHAL` + `JackAudioHAL` 조합으로 거리 기반 경보는 정상 동작 중이다. CSI 카메라는 `/dev/video11` 드라이버 한계로 목표였던 15 FPS에 못 미치는 10 FPS 정도가 나오는데, `yolov8n.rknn`만 배포하면 바로 NPU 추론으로 갈아탈 준비는 끝나 있다.\\
+Right now the Orange Pi 5 is running distance-based alerts fine with the `MockVision` + `VL53L1XHAL` + `JackAudioHAL` combo. The CSI camera runs around 10 FPS due to `/dev/video11` driver limits, short of the 15 FPS target, but it's fully ready to switch over to NPU inference the moment `yolov8n.rknn` gets deployed.
+
+오늘 배운 건, 경고 로그가 쌓인다고 무조건 배선이나 전원을 의심할 게 아니라 설정값과 실제 주기가 서로 맞는지부터 확인해야 한다는 거였다. 스펙 문서를 안 읽고 감으로 값을 넣었다가 한참 헤맸다.\\
+Today's lesson: when warnings pile up in the logs, don't jump straight to blaming wiring or power — check whether the configured value actually matches the real polling cycle first. I set a value by gut feeling instead of reading the spec sheet, and it cost me a good chunk of time.
