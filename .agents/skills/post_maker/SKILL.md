@@ -1,28 +1,28 @@
 ---
 name: post_maker
 description: >
-  프로젝트 루트의 ToDayWork.md 파일을 읽어 Jekyll 블로그 포스트를 자동으로 생성하는 스킬.
+  프로젝트 루트의 ToPost.md 파일을 읽어 Jekyll 블로그 포스트를 자동으로 생성하는 스킬.
   사용자가 "포스트 만들어줘", "오늘 작업 포스트로 올려줘", "ToDayWork 기반으로 포스트 작성해줘",
   "블로그 글 써줘" 등을 요청할 때 반드시 이 스킬을 사용한다.
-  ToDayWork.md 내용을 분석해 제목·카테고리·태그를 추론하고, _posts/ 디렉토리에 Jekyll 포스트 파일을 작성한다.
+  ToPost.md 내용을 분석해 제목·카테고리·태그를 추론하고, _posts/ 디렉토리에 Jekyll 포스트 파일을 작성한다.
 ---
 
 ## 목표
 
-`ToDayWork.md`를 읽어 `_posts/YYYY-MM-DD-<slug>.md` 형식의 Jekyll 포스트 파일을 생성한다.
+`ToPost.md`를 읽어 `_posts/YYYY-MM-DD-<slug>.md` 형식의 Jekyll 포스트 파일을 생성한다.
 
 ---
 
 ## 단계
 
-### 1. ToDayWork.md 읽기
+### 1. ToPost.md 읽기
 
-프로젝트 루트의 `ToDayWork.md`를 읽는다.
+프로젝트 루트의 `ToPost.md`를 읽는다.
 파일이 없으면 사용자에게 알리고 중단한다.
 
 ### 2. 메타데이터 추론
 
-`ToDayWork.md` 내용을 분석해 다음을 결정한다.
+`ToPost.md` 내용을 분석해 다음을 결정한다.
 
 **title**
 - 파일 최상단 `#` 제목을 그대로 사용한다.
@@ -62,7 +62,7 @@ description: >
   English explanation.
   ```
 - 섹션 구분은 `---`를 사용한다.
-- `ToDayWork.md`의 "다음에 할 것" 섹션은 그대로 옮기지 않는다. 대신 포스트 맨 끝에 "N. 요약 및 교훈" 소제목을 두고, 오늘 배운 것 한두 문장과 다음에 할 일을 자연스러운 문장으로 마무리한다.
+- `ToPost.md`의 "다음에 할 것" 섹션은 그대로 옮기지 않는다. 대신 포스트 맨 끝에 "N. 요약 및 교훈" 소제목을 두고, 오늘 배운 것 한두 문장과 다음에 할 일을 자연스러운 문장으로 마무리한다.
 
 **front matter 템플릿**
 ```yaml
