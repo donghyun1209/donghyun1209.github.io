@@ -26,9 +26,6 @@ If it's not there, I had to make it myself. At first, I thought I only needed to
 그래서 하얗게 타버린 점이 몇 퍼센트인지 함께 계산해서 기준을 넘으면 무조건 어둡게 만들도록 고쳤다. 그리고 밝기를 조절하라고 명령한 뒤에는 바로 반영되지 않는다는 점을 고려해, 화면이 계속 깜빡이지 않도록 잠시 기다리는 시간도 넣었다.\\
 So I fixed it to calculate the percentage of burnt white spots as well, unconditionally darkening it if it exceeds the standard. And considering that the command to adjust brightness is not reflected immediately, I also added a waiting time so the screen wouldn't keep blinking.
 
-노출을 먼저 조절하고 모자랄 때만 감도를 올리는 방식을 택했는데, 일단 실내에서는 꽤 잘 작동했다.\\
-I chose to adjust the exposure first and only increase the sensitivity when it's not enough, and it worked quite well indoors for now.
-
 ## 3. 카메라가 멀쩡한데 볼 게 없는 상황을 구분했다
 
 기존에는 카메라가 안 보이는 상황과 멀쩡히 보고 있는데 앞이 빈 상황을 똑같이 취급했다. 그러다 보니 앞이 멀쩡히 보이는데도 거리 센서에 바닥이나 벽이 1.5m 안에 들어오면 무조건 알림이 울렸다.\\
@@ -57,8 +54,3 @@ HIGH 경보가 발생했을 때 앞뒤로 여러 장의 사진을 저장하던 �
 I overhauled the system to save only 1 frame at the moment of the trigger and its metadata, instead of saving multiple photos back and forth when a HIGH alarm occurred. It saves capacity and makes analysis much easier.
 
 <!-- NEED: 최적화된 trigger.jpg 샘플 이미지 -->
-
-## N. 요약 및 교훈
-
-카메라의 특성을 깊게 파악하지 않고 겉보기 값만 믿다가는 엉뚱한 결론을 내리기 쉽다는 것을 배웠다. 앞으로는 야외로 나가 카메라 색깔 문제를 진단하고 센서 반응 속도가 실제 보행에 적합한지 직접 확인해 볼 생각이다.\\
-I learned that it's easy to jump to the wrong conclusion if you just trust the apparent values without deeply understanding the camera's characteristics. From now on, I plan to go outdoors to diagnose the camera color issue and personally check if the sensor reaction speed is suitable for actual walking.
