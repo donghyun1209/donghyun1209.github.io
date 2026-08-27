@@ -15,6 +15,9 @@ _site
 node_modules
 package-lock.json
 
+# Claude Code worktrees
+.claude/worktrees
+
 # IDE configurations
 .idea
 .vscode/*
