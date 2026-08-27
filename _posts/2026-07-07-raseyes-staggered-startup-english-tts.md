@@ -1,5 +1,5 @@
 ---
-title: "RasEyes: 보조배터리를 살리는 차등 기동, 그리고 한국어 TTS와의 이별"
+title: "RasEyes: 보조배터리를 살리는 차등 기동, 그리고 한국어 TTS 삭제"
 date: 2026-07-07 09:00:00 +0900
 categories: [RasEyes, Embedded System]
 tags: [orangepi, piper, tts, onnxruntime, alsa, npu, python, embedded, troubleshooting]
@@ -39,23 +39,8 @@ With all these measures combined, the power-bank-only operation test passed.
 
 ---
 
-## 3. 한국어 TTS를 들어보니 못 쓰겠다..
+## 3. 한국어 TTS를 들어보니 너무 어색하다
 
-한국어 음성 안내를 위해 Piper TTS의 한국어 모델을 붙이는 작업은 사실 꽤 험난했다. `rhasspy/piper-voices`에는 공식 한국어 모델이 아예 없어서, KSS 데이터셋으로 학습된 커뮤니티 모델(`neurlang/piper-onnx-kss-korean`)을 찾아 다운로드 스크립트를 고쳤다.\\
-Getting a Korean model hooked up to Piper TTS for voice guidance was actually quite a slog. `rhasspy/piper-voices` has no official Korean model at all, so I found a community model trained on the KSS dataset (`neurlang/piper-onnx-kss-korean`) and modified the download script for it.
+실제 기기에서 합성된 한국어 음성을 들어봤는데, 발음과 억양이 너무 어색했다. 안내 음성으로 실사용하기엔 부적합하다고 판단했고, 고민 끝에 영어 TTS로 전환하기로 했다.\\
+I finally listened to the synthesized Korean voice on the actual device — and the pronunciation and intonation were just too awkward. I judged it unfit for real use as a guidance voice, and after some deliberation decided to switch to an English TTS.
 
-그런데 이 모델의 `phoneme_type`이 `pygoruut`라는 값으로 정의되어 있어서, `piper-tts`가 모델을 로딩하다가 `'pygoruut' is not a valid PhonemeType` 오류를 뱉고 조용히 EspeakTts로 fallback해버리는 현상이 있었다. 로그를 안 봤으면 한국어가 나오는 줄 알고 지나갈 뻔했다. 결국 `audio/piper_tts.py` 로딩 시점에 piper의 `PhonemeType` Enum을 동적으로 확장하고 `pygoruut` 패키지를 lazy import하는 몽키패치를 짜서 해결했고, Orange Pi 5에 배포해 `PiperTts 초기화 완료` 로그까지 에러 없이 뜨는 것을 확인했다.\\
-But this model's `phoneme_type` was defined as `pygoruut`, so `piper-tts` threw a `'pygoruut' is not a valid PhonemeType` error while loading and silently fell back to EspeakTts. If I hadn't checked the logs, I might have assumed Korean was working and moved on. I ended up writing a monkey-patch that dynamically extends piper's `PhonemeType` enum at load time in `audio/piper_tts.py` and lazy-imports the `pygoruut` package, then deployed to the Orange Pi 5 and confirmed the `PiperTts initialized` log came up clean with no errors.
-
-여기까지 해놓고 실제 기기에서 합성된 한국어 음성을 들어봤는데, 발음과 억양이 너무 어색했다. 안내 음성으로 실사용하기엔 부적합하다고 판단했고, 고민 끝에 영어 TTS로 전환하기로 했다.\\
-After all that, I finally listened to the synthesized Korean voice on the actual device — and the pronunciation and intonation were just too awkward. I judged it unfit for real use as a guidance voice, and after some deliberation decided to switch to an English TTS.
-
-전환 자체는 간단했다. `TTS_PIPER_MODEL_PATH`를 `rhasspy/piper-voices`의 공식 영어 모델 `en_US-lessac-medium`으로 바꾸고, 다운로드 스크립트와 부팅 시퀀스·위험 경고 등의 안내 문구를 전부 영어로 교체했다. 한국어 전용으로 넣었던 `pygoruut` 몽키패치는 영어 모델(`phoneme_type=espeak`)에서는 해당 분기를 타지 않아 동작에 영향이 없으므로, 나중에 한국어를 다시 시도할 때를 대비해 코드에 그대로 남겨뒀다.\\
-The switch itself was simple. I changed `TTS_PIPER_MODEL_PATH` to `en_US-lessac-medium`, the official English model from `rhasspy/piper-voices`, and replaced the download script and all guidance phrases — boot sequence, hazard warnings — with English. The `pygoruut` monkey-patch I had added for Korean doesn't affect the English model (`phoneme_type=espeak`) since that branch is never taken, so I left it in the code in case I try Korean again later.
-
----
-
-## 4. 요약 및 교훈
-
-배터리 구동 임베디드 기기에서는 "동시에 켜지는 것"과 "반복해서 껐다 켜지는 것" 둘 다 전류 스파이크의 원인이 된다는 걸 몸으로 배웠다. 그리고 TTS 품질은 로그가 아니라 귀로 검증해야 한다 — 초기화 성공 로그가 떠도 실제로 들어보기 전까지는 완성이 아니었다. 다음에는 영어 TTS로 교체된 안내 음성을 실제 시나리오에서 검증해볼 생각이다.\\
-Working on a battery-powered embedded device taught me firsthand that both "everything turning on at once" and "things repeatedly powering on and off" cause current spikes. And TTS quality must be verified by ear, not by logs — a successful init log meant nothing until I actually listened. Next up, I plan to validate the new English guidance voice in real usage scenarios.
