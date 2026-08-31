@@ -5,8 +5,8 @@ categories: [RasEyes, 회고]
 tags: [raseyes, retrospective, embedded, npu, tof, camera, navigation, testing, wearable]
 ---
 
-지난 5월 29일 오렌지파이 5에 우분투를 올리는 것부터 시작해서, 오늘로 석 달이다. 그 사이에 만들어진 포스트가 열두 개다. 여기서 한 번 끊고 정리하고 넘어가려 한다.\\
-It's been three months since May 29, when I started by just flashing Ubuntu onto an Orange Pi 5. Twelve posts came out of that stretch. Here I want to draw a line and take stock before moving on.
+지난 5월 29일 오렌지파이 5에 우분투를 올리는 것부터 시작해서, 오늘로 석 달이다. 그 사이에 만들어진 포스트가 열두 개다.\\
+It's been three months since May 29, when I started by just flashing Ubuntu onto an Orange Pi 5. Twelve posts came out of that stretch.
 
 ---
 
@@ -21,9 +21,6 @@ A cane only knows about obstacles on the ground. Things at chest and head height
 
 **2026-05-29 — 첫 삽질**: 오렌지파이 5에 우분투를 올리는 것부터가 이미 트러블슈팅이었다.\\
 Just getting Ubuntu onto the Orange Pi 5 was already a troubleshooting exercise.
-
-**2026-06-21 — 맥북에서 실제 보드로**: 카메라는 순조로웠지만, ToF 센서는 에러 메시지 하나 없이 프로세스를 죽였다. 원인은 aarch64에서만 터지는 라이브러리 버그였다.\\
-The camera came over smoothly, but the ToF sensor killed the process with no error at all — a library bug that only surfaces on aarch64.
 
 **2026-06-26 — NPU에 모델 올리기**: YOLOv8n을 INT8로 양자화해서 드디어 NPU 위에서 돌렸다.\\
 Quantized YOLOv8n to INT8 and finally got it running on the NPU.
@@ -52,18 +49,14 @@ Instead of buying a new button, grabbed the existing power button with `grab()` 
 **2026-08-27 — 깜빡임 하나가 세 가지 증상이었다**: 절전 모드가 1초에 몇 번씩 켜졌다 꺼지면서, 반응 지연·오탐지·둘러보기 오류를 동시에 만들고 있었다. 디바운스를 넣어서 한 번에 잡았다.\\
 One flickering power-save mode was quietly causing three different symptoms at once — slow reactions, false "camera dead" readings, and a scan bug. One debounce fix caught all three.
 
-**2026-08-30 — 길을 알려주기 시작했다**: 목적지 안내를 붙이자마자, 모르는 지시를 "직진하세요"로 잘못 말하는 버그와 장애물 경보가 길안내에 묻히는 버그를 발견했다. 테스트가 하나도 없었다는 게 근본 원인이었고, 그 자리에서 28개를 새로 붙였다.\\
-The moment navigation went in, I found a bug that mistranslated an unknown instruction into "proceed straight" and another that let obstacle warnings get swallowed by navigation speech — both traced back to having zero automated tests for that logic, so I added 28 on the spot.
+**2026-08-30 — 길을 알려주기 시작했다**
 
 ---
 
 ## 지금 와서 보면
 
-3개월을 관통하는 패턴이 하나 있다. 문제를 고친 게 아니라, **문제를 볼 수 있게 만든 다음에야** 고칠 수 있었다는 것이다. 관찰 장치(7/29), 로그 뷰어(8/10), 테스트(8/30) — 이 세 개는 전부 새 기능이 아니라 "지금 뭐가 벌어지고 있는지 보이게 하는" 작업이었고, 그 직후마다 몰랐던 문제가 튀어나왔다.\\
-One pattern runs through all three months: I couldn't fix a problem until I could first *see* it. Telemetry (7/29), the log viewer (8/10), tests (8/30) — none of those three were new features. Each was just "make what's actually happening visible," and each time, a problem I hadn't known about immediately fell out.
-
-가장 크게 바뀐 건 8월 6일이다. "지팡이를 대체하겠다"는 목표를 붙잡고 있는 동안에는 벽 옆을 지날 때마다 울리는 게 버그처럼 느껴졌다. 목표를 "지팡이보다 먼저, 지팡이가 못 보는 곳까지"로 바꾸고 나서야 그게 당연한 동작이라는 걸 인정할 수 있었다. 목표를 잘못 잡으면 잘 만든 것도 실패로 보인다는 걸 몸으로 배운 하루였다.\\
-The biggest shift was August 6th. As long as I was holding onto "replace the cane," ringing every time I passed a wall felt like a bug. Only after changing the goal to "see further and higher than the cane can" could I admit that behavior was correct all along. I learned first-hand that the wrong goal can make something well-built look like a failure.
+3개월을 관통하는 패턴이 하나 있다. 문제를 고친 게 아니라, **문제를 볼 수 있게 만든 다음에야** 고칠 수 있었다는 것이다. 관찰 장치(7/29), 로그 뷰어(8/10) — 이 두 개는 전부 새 기능이 아니라 "지금 뭐가 벌어지고 있는지 보이게 하는" 작업이었고, 그 직후마다 몰랐던 문제가 튀어나왔다.\\
+One pattern runs through all three months: I couldn't fix a problem until I could first *see* it. Telemetry (7/29), the log viewer (8/10) — none of those two were new features. Each was just "make what's actually happening visible," and each time, a problem I hadn't known about immediately fell out.
 
 지금 기기는 처음 문제 정의였던 "상단 사각지대 감지"에 더해, 버튼 하나로 주변을 훑는 360도 스캔과 목적지까지 안내하는 길찾기까지 붙어 있다. 테스트는 365개다. 물론 아직 다 끝난 건 아니다. 실외에서 더 오래, 더 다양한 환경에서 걸어봐야 하고, 방향 추정이 시간만으로 충분한지도 검증이 더 필요하다. 하지만 처음 만들었던 관찰 장치와 뷰어와 테스트가 이제는 그 다음 문제를 스스로 찾아줄 것이다.\\
 Right now the device covers the original problem — top-blind-spot detection — plus a one-button 360-degree scan and turn-by-turn navigation to a destination. The test suite sits at 365. It's not finished, of course — it still needs longer walks across more varied environments, and whether time-based direction estimation is precise enough still needs proving. But the telemetry, the viewer, and the tests I built along the way will be the ones surfacing whatever comes next.
