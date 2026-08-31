@@ -18,6 +18,9 @@ package-lock.json
 # Claude Code worktrees
 .claude/worktrees
 
+# MCP config (may contain secrets via env var expansion)
+.mcp.json
+
 # IDE configurations
 .idea
 .vscode/*
