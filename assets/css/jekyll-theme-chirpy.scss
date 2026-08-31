@@ -14,9 +14,11 @@
    design "Donghyun Tech Log - Modern Typographic Main".
    The site is pinned to dark mode via `theme_mode: dark`
    in _config.yml, so all overrides live under that selector.
+   (Chirpy 7.6 marks the resolved theme with `data-bs-theme`,
+   not the older `data-mode` attribute.)
    ============================================================ */
 
-html[data-mode='dark'] {
+:root[data-bs-theme='dark'] {
   /* Framework color */
   --main-bg: #10131b;
   --main-border-color: #30363d;
