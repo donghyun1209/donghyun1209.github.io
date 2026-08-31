@@ -1,0 +1,159 @@
+---
+---
+
+/* prettier-ignore */
+@use 'main
+{%- if jekyll.environment == 'production' -%}
+  .bundle
+{%- endif -%}
+';
+
+/* ============================================================
+   "Kinetic Engineering" theme
+   Re-skins the stock Chirpy dark theme to match the Stitch
+   design "Donghyun Tech Log - Modern Typographic Main".
+   The site is pinned to dark mode via `theme_mode: dark`
+   in _config.yml, so all overrides live under that selector.
+   ============================================================ */
+
+html[data-mode='dark'] {
+  /* Framework color */
+  --main-bg: #10131b;
+  --main-border-color: #30363d;
+
+  /* Common color */
+  --text-color: #c1c6d7;
+  --text-muted-color: #8b949e;
+  --text-muted-highlight-color: #a9b0c0;
+  --heading-color: #e0e2ed;
+  --label-color: #8b949e;
+  --blockquote-border-color: #30363d;
+  --blockquote-text-color: #8b949e;
+  --link-color: #adc7ff;
+  --link-underline-color: rgb(173 199 255 / 40%);
+  --button-bg: #1c2027;
+  --btn-border-color: #30363d;
+  --btn-backtotop-border-color: #30363d;
+  --card-header-bg: #272a32;
+
+  /* Sidebar */
+  --site-title-color: #e0e2ed;
+  --site-subtitle-color: #8b949e;
+  --sidebar-bg: #181c23;
+  --sidebar-border-color: #30363d;
+  --sidebar-muted-color: #8b949e;
+  --sidebar-active-color: #adc7ff;
+  --sidebar-hover-bg: #272a32;
+  --sidebar-btn-bg: transparent;
+  --sidebar-btn-color: #8b949e;
+  --avatar-border-color: #30363d;
+
+  /* Topbar */
+  --topbar-bg: rgb(16 19 27 / 80%);
+  --search-border-color: #30363d;
+  --search-icon-color: #8b949e;
+  --input-focus-border-color: #adc7ff;
+
+  /* Home page */
+  --post-list-text-color: #c1c6d7;
+  --btn-paginator-hover-color: rgb(173 199 255 / 10%);
+
+  /* Posts / cards */
+  --card-bg: #1c2027;
+  --card-hover-bg: #272a32;
+  --card-shadow: none;
+
+  /* Tags */
+  --tag-hover: rgb(0 212 255 / 10%);
+  --tag-border: #30363d;
+  --tag-shadow: transparent;
+  --search-tag-bg: #1c2027;
+
+  /* Categories */
+  --categories-border: #30363d;
+  --categories-hover-bg: #272a32;
+  --categories-icon-hover-color: #00d4ff;
+
+  /* Archive */
+  --timeline-node-bg: #8b949e;
+  --timeline-color: #30363d;
+
+  /* Typography: Inter for body/headings, JetBrains Mono for labels/code */
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  code,
+  pre,
+  kbd,
+  .post-meta,
+  .pagination,
+  #sidebar .nav-link span,
+  #panel-wrapper .post-tag {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Sidebar: accent bar on the active nav item */
+  #sidebar li.nav-item {
+    &.active .nav-link {
+      border-left: 2px solid var(--sidebar-active-color);
+      padding-left: calc(1.5rem - 2px);
+    }
+
+    .nav-link {
+      border-radius: 0.5rem;
+    }
+  }
+
+  /* Sidebar: flatten the social icon buttons (no ring, accent on hover) */
+  #sidebar .sidebar-bottom a:not(:focus-visible) {
+    box-shadow: none;
+  }
+
+  /* Topbar: frosted-glass effect */
+  #topbar-wrapper {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Home feed: boxed post cards */
+  #post-list .card {
+    background: var(--card-bg);
+    border: 1px solid var(--main-border-color);
+    border-radius: 0.75rem;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: var(--sidebar-muted-color);
+    }
+  }
+
+  /* Pagination: highlight the active page like the design's pill */
+  .pagination .page-item.active .page-link {
+    color: var(--sidebar-active-color);
+    font-weight: 700;
+  }
+
+  /* Panel: boxed cards for "Recently Updated" / "Trending Tags" */
+  #panel-wrapper .access > section {
+    border-left: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--main-border-color);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+  }
+
+  /* Tags: ghost-pill style with electric-blue hover accent */
+  #panel-wrapper .post-tag,
+  .tag {
+    background-color: var(--categories-hover-bg);
+    border-color: var(--main-border-color);
+    color: var(--sidebar-muted-color);
+
+    &:hover {
+      color: #00d4ff;
+      border-color: #00d4ff !important;
+      background-color: var(--tag-hover);
+    }
+  }
+}
