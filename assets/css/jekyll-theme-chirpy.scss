@@ -18,6 +18,11 @@
    not the older `data-mode` attribute.)
    ============================================================ */
 
+/* No avatar image is configured — hide the empty placeholder circle */
+#sidebar #avatar {
+  display: none;
+}
+
 :root[data-bs-theme='dark'] {
   /* Framework color */
   --main-bg: #10131b;
