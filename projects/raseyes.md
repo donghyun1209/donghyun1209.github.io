@@ -6,6 +6,8 @@ permalink: /projects/raseyes/
 
 > **웨어러블 엣지 AI 보행 보조 시스템 (Wearable Top Obstacle Detection System for the Blind)** — 시각장애인의 상단 사각지대 장애물을 실시간으로 감지하여 청각적 경고를 제공하는 PoC 디바이스. (A PoC device that provides audible warnings by detecting blind people's top blind spot obstacles in real time.)
 
+**상태**: 완료 (2026.05.29 ~ 2026.08.31, 약 3개월)
+
 ---
 
 ## 문제 정의
@@ -46,6 +48,17 @@ A chest strap-type wearable device that combines camera vision AI + ToF distance
 | 감지 재현율 | > 95% (2m 이내) |
 | 오탐지 | < 1회/분 |
 | 열 스로틀링 | 사용 시간의 5% 미만 |
+
+## 성과
+
+- 개발 기간 약 3개월(2026.05.29 ~ 2026.08.31), 블로그 기술 일지 12편 작성
+- 텔레메트리·로그 뷰어 구축으로 숨은 버그 다수 발견 및 개선
+- 365개 테스트 케이스로 검증
+
+## 향후 과제
+
+- 실외 장시간 테스트
+- 방향 추정 정확도 검증
 
 ## 개발 로그
 
