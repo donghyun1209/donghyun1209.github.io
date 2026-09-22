@@ -1,7 +1,7 @@
 ---
 title: "TimeManager: users 스키마와 마이그레이션"
 date: 2026-09-21 09:00:00 +0900
-categories: [TimeManager, EPITECH]
+categories: [EPITECH, TimeManager]
 tags: [elixir, phoenix, postgresql, migration, database]
 ---
 
