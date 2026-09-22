@@ -5,8 +5,8 @@ categories: [EPITECH, TimeManager]
 tags: [elixir, phoenix, controller, router, changeset, crud, json]
 ---
 
-Users 컨텍스트, 라우터, 컨트롤러, JSON 뷰까지 직접 만들어서 CRUD를 끝까지 이어봤다.\\
-I built the Users context, router, controller, and JSON view myself, wiring up a full CRUD flow.
+Users 컨텍스트, 라우터, 컨트롤러, JSON 뷰까지 만들어봤다.\\
+I built the Users context, router, controller, and JSON view.
 
 ---
 
@@ -29,8 +29,3 @@ I was about to render the deleted data back after a successful delete, then real
 
 JSON 뷰 파일을 엉뚱한 폴더에 둬도 동작하길래, Phoenix는 파일 위치가 아니라 모듈 이름만 본다는 걸 확인했다. 컨트롤러 params는 문자열 키, JSON 뷰 assigns는 atom 키라는 것도 헷갈리다가 다시 배웠다.\\
 I found that Phoenix only cares about the module name, not the file's location, after a JSON view file worked even in a random folder. I also relearned that controller params use string keys while JSON view assigns use atom keys.
-
-## 5. 느낀 점
-
-막힐 때마다 이미 되는 코드(`show`)랑 비교하는 게 제일 빨랐다.\\
-Comparing against code that already worked (`show`) was the fastest way through every roadblock.
