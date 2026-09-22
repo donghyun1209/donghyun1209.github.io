@@ -1,6 +1,6 @@
 ---
 title: "TimeManager: Users 컨트롤러와 CRUD"
-date: 2026-09-23 09:00:00 +0900
+date: 2026-09-22 09:00:00 +0900
 categories: [EPITECH, TimeManager]
 tags: [elixir, phoenix, controller, router, changeset, crud, json]
 ---
