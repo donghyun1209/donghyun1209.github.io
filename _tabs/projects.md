@@ -28,3 +28,13 @@ An edge AI walking assist device PoC that detects chest and head height obstacle
 | **검증** | 365개 테스트 케이스 |
 
 [→ 프로젝트 상세 보기](/projects/raseyes/) &nbsp;|&nbsp; [→ 관련 포스트 보기](/categories/raseyes/)
+
+---
+
+## EPITECH (프랑스 교환학생)
+
+### [TimeManager](/projects/timemanager/) — 2026.09 ~ (진행 중)
+
+> 직원 근무시간(clock-in/out, working time) 관리 시스템을 만드는 팀 프로젝트. `users` 스키마/마이그레이션 파트 담당.
+
+[→ 프로젝트 상세 보기](/projects/timemanager/) &nbsp;|&nbsp; [→ 관련 포스트 보기](/categories/timemanager/)
