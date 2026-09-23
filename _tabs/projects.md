@@ -35,6 +35,6 @@ An edge AI walking assist device PoC that detects chest and head height obstacle
 
 ### [TimeManager](/projects/timemanager/) — 2026.09 ~ (진행 중)
 
-> 직원 근무시간(clock-in/out, working time) 관리 시스템을 만드는 팀 프로젝트. `users` 스키마/마이그레이션 파트 담당.
+> 직원 근무시간(clock-in/out, working time) 관리 시스템을 만드는 팀 프로젝트.
 
 [→ 프로젝트 상세 보기](/projects/timemanager/) &nbsp;|&nbsp; [→ 관련 포스트 보기](/categories/timemanager/)
