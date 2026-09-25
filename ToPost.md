@@ -1,16 +1,81 @@
-`Users` 컨텍스트 모듈 작성 — `create_user/1`/`update_user/2`/`delete_user/1`은 직접 작성 `%User{}`가 "id: nil인, 아직 저장 안 된 구조체"라는 걸 확인 → create/update는 changeset이 값 검증 때문에 필요하지만 delete는 검증이 필요 없어 `Repo.delete(user)`를 changeset 없이 바로 쓴다는 것까지 스스로 구분해냄
+# 오늘 배움 정리
 
+## Vite proxy(요청 대신 전달해 주기)
+- **한 일:** 브라우저는 프론트 서버(5173번 포트)하고만 이야기함. `/api`로 시작하는 요청은 Vite가 백엔드(4000번 포트)로 대신 넘겨준다.
+- **확인:** `curl localhost:5173/api/users` → 200(성공)
 
- 라우터 `/api` scope + USER 5개 라우트 (`post/put/delete/get`) 직접 작성
+## `vite: command not found` 에러
+- **원인:** `npm install`을 안 해서 패키지가 설치되지 않은 상태였다.
+- **알게 된 점:** vite는 컴퓨터 전체에 깔린 프로그램이 아니다. 프로젝트 안에 설치되는 도구라서, 프로젝트마다 `npm install`을 해야 함.
 
+## 사이드바 로고와 전체 화면 틀
+- **한 일:** `App.vue`의 틀을 `app-shell` 안에 `sidebar`(왼쪽 메뉴)와 `main-panel`(오른쪽 본문)이 있는 구조로 만들었음.
+- **알게 된 점:**
+  - CSS에 없는 클래스 이름을 써도 에러가 나지 않고 그냥 무시돼요. (처음엔 헷갈렸지만 이해함)
+  - 없는 페이지로 가는 링크는 에러가 아니라 경고만 떠요.
+  - `grid-template-columns: 246px 1fr`은 첫 칸이 246px, 나머지 칸이 남은 공간을 모두 쓴다는 뜻이에요. 전체 너비는 부모가 정해요.
 
-`UserController` 생성, `index`(예시 제공)/`show`(직접 작성) "라우터 `:userID`를 `:id`로 바꾸면?" - FunctionClauseError. 
+## 사용자 정보가 들어갈 자리 만들기
+- **한 일:** 나중에 `<User />` 컴포넌트가 들어갈 자리를 만들고 임시 박스로 잠시 채워둠.
+- **알게 된 점:**
+  - `gap` = 안에 든 요소들 **사이** 간격
+  - `padding` = 박스 **안쪽** 여백
+  - 여기서 고른 userId는 다른 메뉴에서도 씀.
 
+## 선택된 userId 보여주기
+- **한 일:** `App.vue`에 임시로 `const userId = ref('1')`를 만들고, 박스에 `{{ userId }}`를 표시했어요. userId만 보여주기로 결정
+- **알게 된 점:**
+  - `ref`로 만든 값은 바뀌면 화면도 알아서 바뀌어요.
+  - script에서 값을 바꿀 때는 `userId.value = '7'`처럼 써야 해요. `userId = '7'`은 `const`라서 에러가 나요.
+  - 일반 변수는 값이 바뀌어도 Vue가 모르기 때문에 화면이 그대로예요.
 
-컨트롤러 `update` — `get_user!(id)`로 기존 user를 먼저 조회한 뒤 `Users.update_user(user, params)` 호출, `case`/`{:ok,_}`/`{:error,_}` 분기 처음엔 `get_user!` 호출 없이 존재하지 않는 `user` 변수를 바로 써서 `undefined variable "user"` 컴파일 에러를 봄 → `show`와 비교해서 스스로 고침. `end` 짝 개수 세다가 문법 에러도 스스로 해결. `put_status(:update)` → `:updated`도 유효하지 않은 status atom이다. `:ok`로 정정. `create`는 없던 리소스를 새로 만드니 201, `update`는 이미 있던 리소스를 고치는 거라 200이라는 걸 POST/PUT 차이부터 시작해 스스로 도출함
+## 사이드바 메뉴 6개
+- **한 일:** 데모 메뉴 6개를 만들었.
+- **알게 된 점:**
+  - `:to`처럼 앞에 `:`를 붙이면 코드로 계산한 값이 들어가요. 없으면 적은 글자가 그대로 들어가.
+  - `${}`는 백틱(`` ` ``)으로 감싼 문자열에서만 동작.
+  - 아직 `routes: []`로 페이지가 비어 있어서 "No match" 경고가 떠요.
+  - userId가 `ref`라서 값이 바뀌면 메뉴 링크 주소도 같이 바뀌어요.
+- **주의:** 에디터가 import를 제멋대로 추가하는 일이 있으니 조심하기
 
+## 위쪽 바 제목(현재 페이지 이름)
+- **한 일:** `useRoute`로 지금 주소를 가져와서, 주소의 첫 부분을 보고 제목을 정했어요. `computed`로 만들었어요.
+- **알게 된 점:**
+  - `'/workingTimes/1'.split('/')` → `['', 'workingTimes', '1']`
+  - `||`는 앞의 값이 없을 때 쓸 기본값을 정해줘요.
+  - `computed`는 값이 바뀌면 다시 계산하고, **결과를 저장(캐시)**해 둬요. 그냥 함수로 써도 화면은 바뀌지만 매번 새로 계산해요.
 
-컨트롤러 `delete` — `get_user!(id)`로 조회 후 `Users.delete_user(user)`, 성공 시 `send_resp(conn, 204, "")`, 실패 시 `{:error, changeset}` 분기 처음엔 삭제된 데이터를 `render(:show, ...)`로 보여주려다 스스로 "지운 걸 왜 다시 보여주지?"라는 모순을 알아채고 204 No Content로 방향 전환. `put_status(:ok)` 다음에 `send_resp(conn, 204, "")`를 이어붙이면 실제로 죽은 코드(`put_status(:ok)`)라는 걸 깨닫고 제거함. `send_resp(conn, 204, "")`를 파이프 안에서 쓸 때 `conn`을 중복으로 또 넘겨 `send_resp/4` undefined 에러를 봄 → `render`가 파이프에서 `conn` 안 넘기는 것과 비교해서 스스로 고침. unused variable 경고 정리 중 `Users.delete_user(user)`의 `user`(46번 줄, 실제 사용 중)와 `{:ok, user}`의 `user`(48번 줄, case 분기 안에서 미사용)를 헷갈려 엉뚱한 줄을 `_user`로 바꿨다가, 컴파일 경고가 가리키는 정확한 줄 번호를 다시 대조해서 스스로 정정함
+## 근무 시간 페이지 만들기 (`WorkingTimes.vue`)
+- **한 일:** `/workingTimes/:userID` 주소를 만들고, `App.vue`에 `<RouterView />`(페이지 내용이 들어갈 자리)를 넣었어요.
+- **내가 만든 버그 2개:**
+  1. 주소 앞에 `/`를 빠뜨림 → 라우터를 만들 때 에러가 나서 **앱 전체가 하얀 화면**이 됨
+  2. 주소에는 `:userID`인데 코드에서는 `params.userId`로 읽음 → 대소문자가 달라서 `undefined`, 화면에 빈칸
+- **알게 된 점:**
+  - `<RouterView />`는 페이지가 들어가는 자리이고 없으면 본문이 사라짐.
+  - `computed`를 안 쓰면 본문의 userId는 예전 값에 멈춰 있어요. 사이드바는 `App.vue`에 따로 있는 `ref`라서 제대로 바뀌고요. (처음엔 헷갈렸지만 이해함)
+- **팁:** 하얀 화면이 뜨면 먼저 F12 → Console 보기
 
+## 근무 기록 목록 표
+- **한 일:** `v-for`와 `:key`로 목록을 반복해서 그리고, 목록이 비었을 때는 `v-if`로 안내를 띄웠어요. 날짜는 `formatDateTime`으로, 시간은 `durationHours().toFixed(2)`로 표시했어요.
+- **결과:** 3줄, 3 / 8.5 / 9시간 잘 나옴. 빈 줄 안 생김
+- **내가 만든 버그:** `<thead>`를 `<thread>`로 잘못 씀 → 브라우저가 모르는 태그라 에러 없이 표에서 빠져 버리고, 제목 줄만 왼쪽에 몰림
+- **참고:** API가 이미 날짜를 `T` 없는 형식으로 줘요. `formatDateTime`은 혹시 몰라 넣은 안전장치예요.
 
-`UserJSON` 뷰 (`lib/time_manager_web/controllers/user_json.ex`) 작성 — `data/1` 헬퍼는 예시로 받고, `index`/`show`/`error`는 직접 작성 시도 Phoenix가 `render(conn, :show, user: user)`를 호출하면 실제로 어느 모듈/함수가 실행되는지 예측하는 문제에서, 파일을 controllers 폴더가 아닌 엉뚱한 곳에 둬도 동작하는지 실험 → `elixirc_paths`가 `lib` 전체라 파일 위치가 아니라 `defmodule` 모듈 이름만 본다는 것을 직접 확인함. 이어서 `data(%User{})`처럼 함수 호출을 함수 머리에 쓰려다 "머리에는 패턴만 가능하고 함수 호출은 안 된다"는 규칙을 배움. `%{"userID" => id}`(컨트롤러 params, 문자열 키)와 `%{user: user}`(JSON 뷰 assigns, atom 키)를 헷갈리다가, atom과 문자열은 다른 값이라 키가 안 맞으면 패턴 매칭 자체가 실패한다는 걸 정정받고 이해함. `data/1`은 `%User{}` 구조체 하나만 받는데 `users`는 리스트라서 `Enum.map(users, &data/1)`으로 원소마다 호출해야 한다는 걸 스스로 설명함
+## 총 근무 시간 합계
+- **한 일:** `computed`와 `reduce(..., 0)`으로 합계를 구했어요. → 20.5시간
+- **알게 된 점:** `, 0`을 빼면 첫 번째 기록(객체)이 시작값이 돼요. 그러면 `객체 + 숫자`가 문자열이 되고, `.toFixed`에서 에러가 나서 **컴포넌트 전체가 안 보여요.** (직접 바꿔 보면서 이해함)
+
+## 자잘한 문제
+- 코드를 치는 도중에 저장하면 Vite가 `Failed to reload`를 띄우고 예전 화면이 남아요. → 새로고침하면 돼요.
+- `datetime-local` 입력칸은 날짜뿐 아니라 **시간까지** 채워야 값이 들어가요.
+
+## 사이드바를 따로 떼어내기 (E-1)
+- **한 일:** 사이드바를 `components/Sidebar.vue`로 옮기고, `userId`도 같이 옮겼어요. `App.vue`에는 `<Sidebar />`만 남겼어요.
+- **알게 된 점:**
+  - `App.vue`에 `userId`를 남겨 두면 에러는 없어요. 하지만 이름만 같은 **다른 값**이 두 개 생겨서 헷갈려요.
+  - Sidebar에 `userId`가 없으면 빈칸이 뜨고 링크가 `/workingTimes/undefined`가 돼요.
+  - → 컴포넌트마다 변수를 따로 가져요. 화면에서 쓰는 변수는 **같이 옮겨야** 해요.
+
+## 위쪽 바도 떼어내기 (E-2, E-3)
+- **한 일:** 위쪽 바를 `components/Topbar.vue`로 옮겼어요. 이제 `App.vue`는 `<Sidebar />`, `<Topbar />`, `<RouterView />`를 배치하는 일만 해요.
+- **알게 된 점:** `useRoute()`는 어느 컴포넌트에서 불러도 같은 주소 정보를 줘요. 라우터는 앱 전체에 **하나**뿐이고, 변수(`userId`)는 컴포넌트마다 **따로** 있어요.
