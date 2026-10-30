@@ -21,7 +21,7 @@ My first version computed padding as `bottom = size - top`. Running it on bus.jp
 bus.jpg는 scale 0.593에 좌우 패딩 80, zidane.jpg는 scale 0.5에 위아래 패딩 140이 나왔다. letterbox 함수가 이미지와 함께 scale과 pad를 같이 반환하게 만든 건, 모델이 내놓는 박스가 640 letterbox 좌표라서 나중에 원본 좌표로 되돌릴 때 이 두 값이 꼭 필요하기 때문이다.\\
 bus.jpg came out with scale 0.593 and 80 px of left/right padding, and zidane.jpg with scale 0.5 and 140 px of top/bottom padding. I made the letterbox function return scale and pad along with the image because the model's boxes are in 640 letterbox coordinates, and these two values are needed to map them back to the original image.
 
-<!-- NEED: bus.jpg / zidane.jpg letterbox 결과 이미지 (좌우 패딩 vs 위아래 패딩 비교) -->
+![bus.jpg는 좌우, zidane.jpg는 위아래에 회색 패딩이 붙은 letterbox 결과](/images/20261029_letterbox_compare.jpg)
 
 ---
 
@@ -90,7 +90,7 @@ def nms(boxes, scores, iou_thres=0.45):
 `np.argsort`는 오름차순 인덱스를 돌려주기 때문에 `[::-1]`로 뒤집어야 한다. 리스트 컴프리헨션에서는 1등과 덜 겹친, 즉 다른 물체일 수도 있는 박스만 다음 라운드로 넘긴다. 돌려보니 46개가 정확히 5개(사람 4, 버스 1)로 줄었다.\\
 `np.argsort` returns ascending indices, so it has to be flipped with `[::-1]`. The list comprehension passes only boxes that overlap the winner less — ones that might be different objects — to the next round. Running it reduced the 46 candidates to exactly 5 (4 people, 1 bus).
 
-<!-- NEED: bus.jpg에 최종 박스 5개를 그린 결과 이미지 -->
+![NMS 후 남은 최종 박스 5개 (사람 4, 버스 1)](/images/20261029_bus_nms_result.jpg)
 
 ---
 
