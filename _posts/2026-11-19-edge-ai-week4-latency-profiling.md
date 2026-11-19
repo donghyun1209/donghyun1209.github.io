@@ -5,8 +5,8 @@ categories: [Edge AI, YOLO 경량화]
 tags: [onnxruntime, int8, profiling, latency, quantization, yolov8, sqnr, rknn, amdahl]
 ---
 
-이번에는 "그래서 얼마나 빨라졌고, 정확도는 어디서 떨어졌나"를 직접 재 보기로 했다.\\
-This time I set out to measure "so how much faster is it, and where did the accuracy drop?"
+이번에는 "얼마나 빨라졌고, 정확도는 어디서 떨어졌나"를 직접 재 보기로 했다.\\
+This time I set out to measure "how much faster is it, and where did the accuracy drop?"
 
 ---
 
